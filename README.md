@@ -1,0 +1,1 @@
+# Resolucao_Sokoban_Algoritmo_A
