@@ -1,1 +1,1 @@
-# Resolucao_Autonoma_Sokoban
+# Resolucao_Sokoban_Algoritmo_A
