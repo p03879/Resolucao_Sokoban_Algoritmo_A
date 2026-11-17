@@ -581,4 +581,53 @@ int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]){  /
 
     return menor_custo;
 }
+
+
+int EstimarCusto(Fase *f, Estado *e){  //CALCULA A ESTIMATIVA DO CUSTO PARA UM DETERMINADO ESTADO
+    int i, estimativa;
+    int associados[f->qtd_caixas];  //CADA POSICAO REPRESENTA UM CAIXA DA FASE. O VETOR VAI INDICAR QUAIS CAIXAS JA FORAM ASSOCIADAS A OBJETIVOS
+
+    for(i= 0; i < f->qtd_caixas; i++){
+        associados[i] = 0;  //INDICA QUE A CAIXA AINDA NAO FOI ASSOCIADA
+    }
+
+    estimativa = AssociarCaixasObjetivos(f, e, 0, associados);  //RETORNA O CALCULO DA ESTIMATIVA APOS ASSOCIAR CAIXA A OBJETIVOS
+    return  estimativa
+}
+
+
+int CaixaNoObjetivo(Fase *f, int linha, int coluna){  //VERIFICA A EXISTENCIA DE OBJETIVO NA POSICAO INFORMADA
+    int i;
+
+    for(i = 0; i < f->qtd_caixas; i++){  //VERIFICA TODOS OS OBJETIVOS DA FASE
+        if(f->objetivos[i].linha == linha && f->objetivos[i].coluna == coluna){  //VERIFICA SE A POSICAO DO OBJETIVO CORRESPONDE AO PARAMETRO RECEBIDO
+            return 1;  //CASO ENCONTRE UM OBJETIVO NA POSICAO PROCURADA
+        }
+    }
+
+    return 0;
+}
+
+
+int DistanciaJogador(Fase *f, Estado *e){  //CALCULA A MENOR DISTANCIA ENTRE O JOGADOR E UMA CAIXA FORA DO OBJETIVO. UTILIZA A DISTANCIA DE MANHATTAN
+    int i, dist, menor;  //DIST ARMAZENA A DISTANCIA ENTRE O JOGADOR E A CAIXA E MENOR ARMAZENA A MENOR DISTANCIA
+
+    menor = INF;
+
+    for(i = 0; i < f->qtd_caixas; i++){  //VERIFICA TODAS AS CAIXAS
+        if(!CaixaNoObjetivo(f, e->caixas[i].linha, e->caixas[i].coluna)){  //VERIFICA SE A CAIXA JA NAO SE ENCONTRA NO OBJETIVO
+            dist = abs(e->caixas[i].linha - e->jogador.linha) + abs(e->caixas[i].coluna - e->jogador.coluna);  //ABS TORNA OS VALORES POSITIVOS PARA EVITAR DISTANCIAS NEGATIVAS. CALCULAMOS A DIFERENÇA ENTRE A POSICAO DA CAIXA E DO JOGADOR
+
+            if(dist < menor){
+                menor = dist;  //ATRIBUI MENOR DISTANCIA ENCONTRADA
+            }
+        }
+    }
+
+    if(menor == INF){  //SIGNIFICA QUE NENHUMA CAIXA FOI CONSIDERADA, PORTANTO, TODAS JA ESTAO SOBRE SEUS OBJETIVOS
+        return 0;
+    }
+
+    return menor - 1;  //CONSIDERA QUE O JOGADOR JA ESTA ATRAS DA CAIXA (SEMPRE QUE ELE VAI DEIXAR A CAIXA NO OBJETIVO ELE ANDA - 1 POSICAO QUE A CAIXA)
+}
 #endif // LISTA_H_INCLUDED
