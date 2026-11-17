@@ -268,7 +268,7 @@ int EstadoSucessor(Fase *f, Estado *atual, int direcao, Estado *novo){  //GERA A
             break;
 
         default:
-            free(novo->caixas)_; /////////////////////////////////////////////////////////////////////////////////////////
+            free(novo->caixas); /////////////////////////////////////////////////////////////////////////////////////////
             novo->caixas = NULL;
             return 0;
     }
