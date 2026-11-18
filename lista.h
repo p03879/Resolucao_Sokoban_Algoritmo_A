@@ -11,6 +11,34 @@
 #define DIR 3
 #define INF 10000
 
+/*SUMARIO DAS FUNÇOES:
+int CriarFase(Fase *f, int linhas, int colunas, int qtd_caixas)                                                                     RESERVA MEMÓRIA PARA O MAPA, OBJETIVOS E DISTANCIA
+int CriarEstado(Estado *e, int qtd_caixas)                                                                                          RESERVAR A QUANTIDADE NECESSARIA DE POSICOES DAS CAIXAS DE UM ESTADO
+void LiberarFase(Fase *f) 	                                                                                                        LIBERA MEMORIA ALOCADA PARA CRIACAO DA FASE, EVITANDO DISPERDICIO
+void LiberarEstado(Estado *e) 	                                                                                                    LIBERA A MEMORIA ALOCADA PARA A QUANTIDADE DE CAIXAS DE CADA FASE
+void CriarMapa(Fase *f, int mapa[f->linhas][f->colunas]) 	                                                                        COPIA OS VALORES DA MATRIZ RECEBIDA (FASE)
+void PreencherPosicoes(Fase *f, Estado *e, Posicao objetivos[], Posicao caixas[], Posicao jogador) 	                                PREENCHE AS POSICOES INICIAIS DOS OBJETIVOS, CAIXAS E JOGADOR
+void InicializarFase(Fase *f, Estado *e, int mapa[f->linhas][f->colunas], Posicao objetivos[], Posicao caixas[], Posicao jogador) 	INICIALIZA UMA FASE DO JOGO, CONFIGURANDO O MAPA E PREENCHENDO AS POSIÇOES DOS OBJETIVOS, CAIXAS E JOGADOR
+int EncontrarCaixa(Fase *f, Estado *e, int linha, int coluna) 	                                                                    VERIFICAR SE EXISTE CAIXA EM DETERMINADA POSICAO DO MAPA
+int VerificarMovimento(Fase *f, Estado *e, int direcao) 	                                                                        VALIDA SE UM  MOVIMENTO DO JOGADOR PODE SER REALIZADO, CONSIDERANDO OBSTACULOS, LIMITES DO MAPA E MOVIMENTAÇAO DE CAIXAS
+int EstadoSucessor(Fase *f, Estado *atual, int direcao, Estado *novo) 	                                                            GERA AS POSSIBILIDADE DE ESTADOS PARA O ALGORITMO A*: CRIA UM NOVO ESTADO A PARTIR DO ATUAL
+int CompararEstados(Fase *f, Estado *e1, Estado *e2) 	                                                                            VERIFICA SE DOIS ESTADOS GERADOS SAO IGUAIS
+int CriaDistancia(Fase *f) 	                                                                                                        ALOCA DINAMICAMENTE A MATRIZ DE DISTANCIAS UTILIZADA PELA HEURISTICA, GARANTINDO O TRATAMENTO DE FALHAS DE MEMORIA E A LIBERAÇAO DOS RECURSOS JA ALOCADOS QUANDO NECESSARIO
+void Distancias(Fase *f) 	                                                                                                        INICIALIZA A MATRIZ DE DISTANCIA DA FASE, ATRIBUINDO O VALOR INF A TODAS AS POSIÇOES PARA INDICAR QUE AS DISTANCIAS DAS CAIXASA AINDA NAO FORAM CALCULADAS
+void Deslocamento(int direcao, int *dl, int *dc) 	                                                                                RECEBE UMA DIRECAO E TRANSFORMA EM DESLOCAMENTO
+int LimiteMapa(Fase *f, int linha, int coluna) 		                                                                                VERIFICA SE UMA POSICAO ESTA DENTRO DO LIMITE DO MAPA
+Fila* CriarFila() 	                                                                                                                CRIA UMA FILA
+int FilaVazia(Fila *fila) 	                                                                                                        VERIFICA SE A FILA ESTÁ VAZIA
+int InserirFila(Fila *fila, Posicao p) 		                                                                                        INSERE NOVA POSICAO NA FILA
+Posicao RetirarFila(Fila *fila) 	                                                                                                REMOVE POSICAO DA FILA
+void LiberarFila(Fila *fila) 	                                                                                                    LIBERA TODA MEMORIA ALOCADA PARA FILA
+int CalculoDistanciaObjetivos(Fase *f, int i, Fila *fila) 	                                                                        CALCULA A DISTANCIA A PARTIR DE OBJETIVO ESPECIFICO, CONSIDERANDO MOVIMENTOS PARA CAIXA CHEGAR ATE LA E INDICA QUAL OBJETIVO ESTA SENDO UTILIZADO COMO REFERENCIA PARA O CALCULO
+int PercorrerDistanciaObjetivos(Fase *f)                                                                                            CALCULA A TABELA DE DISTANCIAS DE TODOS OS OBJETIVOS
+int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]) 	                                                    ASSOCIA CADA CAIXA A TODOS OS OBJETIVOS PARA DEPOIS VERIFICAR QUAL O MAIS PROXIMO. ASSOCIADOS[] GUARDA OS OBJETIVOS JA UTILIZADOS NA COMBINACAO COM A CAIXA
+int EstimarCusto(Fase *f, Estado *e) 	                                                                                            CALCULA A ESTIMATIVA DO CUSTO PARA UM DETERMINADO ESTADO
+int CaixaNoObjetivo(Fase *f, int linha, int coluna) 	                                                                            VERIFICA A EXISTENCIA DE OBJETIVO NA POSICAO INFORMADA
+int DistanciaJogador(Fase *f, Estado *e) 	                                                                                        CALCULA A MENOR DISTANCIA ENTRE O JOGADOR E UMA CAIXA FORA DO OBJETIVO. UTILIZA A DISTANCIA DE MANHATTAN
+*/
 
 
 //ESTRUTURAS DO PROGRAMA
