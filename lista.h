@@ -42,6 +42,30 @@ int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]) 	  
 int EstimarCusto(Fase *f, Estado *e) 	                                                                                            CALCULA A ESTIMATIVA DO CUSTO PARA UM DETERMINADO ESTADO
 int CaixaNoObjetivo(Fase *f, int linha, int coluna) 	                                                                            VERIFICA A EXISTENCIA DE OBJETIVO NA POSICAO INFORMADA
 int DistanciaJogador(Fase *f, Estado *e) 	                                                                                        CALCULA A MENOR DISTANCIA ENTRE O JOGADOR E UMA CAIXA FORA DO OBJETIVO. UTILIZA A DISTANCIA DE MANHATTAN
+Lista* CriarLista() 	                                                                                                            CRIA A LISTA DINAMICAMENTE
+int ListaVazia(Lista *l) 	                                                                                                        VERIFICA SE A LISTA ESTA VAZIA
+int Prioridade(No *no1, No *no2)                                                                                                   	IRÁ COMPARAR DOIS NOS DO A* E VERIFICAR QUAL POSSUI PRIORIDADE COM BASE EM VARIAVEIS
+void InserirListaOrdenada(Lista *l, No *novo) 	                                                                                    INSERE UM NO NA LISTA MANTENDO A ORDENAÇAO DEFINIDA PELO CRITERIO DE PRIORIDADE
+No* RemoverInicio(Lista *l) 	                                                                                                    REMOVE E RETORNa O PRIMEIRO NO DA LISTA, ATULAIZANDO SEU INICIO
+void LiberarLista(Lista *l)                                                                                                      	LIBERA A MEMORIA ALOCADA PARA TODOS OS NOS DA LISTA
+int CopiarEstado(Fase *f, Estado *partida, Estado *chegada) 	                                                                    COPIA INFORMACOES DE UM ESTADO PARA OUTRO
+void CalculoCustoH(Fase *f, No *no, No *ant) 	                                                                                    CALCULA OS CUSTOS G, H e F DO NO, ALEM DO CRITERIO DE DESEMPATE UTILIZADO NA BUSCA
+No* CriarNo(Fase *f, Estado *e, No *ant) 	                                                                                        CRIA O NO UTILIZADO PELO A*
+int EstadoNaLista(Fase *f, Lista *l, Estado *e)                                                                                 	VERIFICA SE O ESTADO DO JOGO JA FOI ARMAZENADO NA LISTA
+int Sucesso(Fase *f, Estado *e) 	                                                                                                VERIFICA SE O ESTADO ATUAL REPRESENTA A SOLUÇAO
+void NoSucessor(Fase *f, No *ant, int direcao, Lista *aberta, Lista *fechada) 	                                                    CRIA E ADICIONA À LISTA ABERTA OS NOS SUCESSORES VALIDOS GERADOS A PARTIR DE UM ESTADO
+void ExpandirNo(Fase *f, No *atual, Lista *aberta, Lista *fechada)                                                                 	EXPANDE UM NO TENTANDO GERA POSSIVEIS ESTADOS
+No* AEstrela(Fase *f, Estado *inicial, Lista *aberta, Lista *fechada, int *expandidos) 		                                        A PARTIR DO ESTADO INCIAL, ESPLORA OS ESTADOS DE ACORDO COM SUA PRIORIDADE
+void ImprimirMapa(Fase *f, Estado *e)                                                                                               IMPRIME O MAPA UTILIZANDO SIMBOLOS UNICODE ESCOLHIDOS
+No *ResolveFase(Fase *f, Estado *inicial, Lista *aberta, Lista *fechada, int *expandidos)                                       	RESOLVE A FASE EM ETAPAS, DE ACORDO COM OS NOS EXPANDIDOS, PARA FAZER A CONFIGURAÇAO DO MAPA ATUALIZADO
+void AnimarMapaSolucao(Fase *f, No *no, int nivel, int numeroFase, int velocidadeMs) 	                                            ANIMA A SOLUCAO, FAZ O BONECO SE MOVIMENTAR E MOVIMENTAR AS CAIXAS
+void ImprimirTabelaResultados(ResultadoTabela r[], int qtdFases)                                                                	APRESENTA A TABELA COMPARATIVA DAS FASES DO NIVEL EXECUTADO, APOS SUA EXECUÇAO. R ARMAZENA OS RESULTADOS E QTFFASES INFORMA QUANTAS POSICOES TERA O VETOR
+int CarregarFaseFacil(int numeroFase, Fase *f, Estado *e) 	                                                                        PREPARA OS MAPAS DO NIVEL FACIL, CAIXAS, OBJETIVOS E JOGADOR
+int CarregarFaseMedio(int numeroFase, Fase *f, Estado *e) 	                                                                        PREPARA OS MAPAS DO NIVEL MEDIO, CAIXAS, OBJETIVOS E JOGADOR
+int CarregarFaseDificil(int numeroFase, Fase *f, Estado *e)                                                                      	PREPARA OS MAPAS DO NIVEL FACIL, CAIXAS, OBJETIVOS E JOGADOR
+int CarregarFase(int nivel, int numeroFase, Fase *f, Estado *e)                                                                 	RECEBE O NIVEL DE DIFICULDADE ESCOLHIDO PELO USUARIO NA MAIN, COM ISSO, EXECUTA O CASE
+void LimparBuffer() 	                                                                                                            LIMPEZA DE BUFFER, CONFERE ENTRADA DE CARACTERES E FAZ LIMPEZA CASO O FINAL DO VALOR INSERIDO SEJA != 1 (FINAL 1 REPRESENTA NUMERO)
+void ExecutarNivel(int nivel, int velocidadeMs) 	                                                                                PROCESSO DE RESOLUCAO DE CADA FASE DENTRO DO NIVEL DE DIFICULDADE
 */
 
 
