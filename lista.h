@@ -3,16 +3,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <locale.h>
+#include <windows.h>
+#include <conio.h>
+
 
 #define CIMA 0
 #define BAIXO 1
 #define ESQ 2
 #define DIR 3
 #define INF 10000
+#define QTD_FASES 2
+
 
 /*SUMARIO DAS FUNÇOES:
-int CriarFase(Fase *f, int linhas, int colunas, int qtd_caixas)                                                                     RESERVA MEMÓRIA PARA O MAPA, OBJETIVOS E DISTANCIA
+int CriarFase(Fase *f, int linhas, int colunas, int qtd_caixas)                                                                     RESERVA MEMÓRIA PARA O MAPA E OBJETIVOS
 int CriarEstado(Estado *e, int qtd_caixas)                                                                                          RESERVAR A QUANTIDADE NECESSARIA DE POSICOES DAS CAIXAS DE UM ESTADO
 void LiberarFase(Fase *f) 	                                                                                                        LIBERA MEMORIA ALOCADA PARA CRIACAO DA FASE, EVITANDO DISPERDICIO
 void LiberarEstado(Estado *e) 	                                                                                                    LIBERA A MEMORIA ALOCADA PARA A QUANTIDADE DE CAIXAS DE CADA FASE
@@ -21,7 +25,7 @@ void PreencherPosicoes(Fase *f, Estado *e, Posicao objetivos[], Posicao caixas[]
 void InicializarFase(Fase *f, Estado *e, int mapa[f->linhas][f->colunas], Posicao objetivos[], Posicao caixas[], Posicao jogador) 	INICIALIZA UMA FASE DO JOGO, CONFIGURANDO O MAPA E PREENCHENDO AS POSIÇOES DOS OBJETIVOS, CAIXAS E JOGADOR
 int EncontrarCaixa(Fase *f, Estado *e, int linha, int coluna) 	                                                                    VERIFICAR SE EXISTE CAIXA EM DETERMINADA POSICAO DO MAPA
 int VerificarMovimento(Fase *f, Estado *e, int direcao) 	                                                                        VALIDA SE UM  MOVIMENTO DO JOGADOR PODE SER REALIZADO, CONSIDERANDO OBSTACULOS, LIMITES DO MAPA E MOVIMENTAÇAO DE CAIXAS
-int EstadoSucessor(Fase *f, Estado *atual, int direcao, Estado *novo) 	                                                            GERA AS POSSIBILIDADE DE ESTADOS PARA O ALGORITMO A*: CRIA UM NOVO ESTADO A PARTIR DO ATUAL
+int EstadoSucessor(Fase *f, Estado *atual, int direcao, Estado *novo) 	                                                            GERA O ESTADO SUCESSOR PARA UMA DIREÇÃO, SERÁ UTILIZADO PARA GUIAR O A* .AS POSSIBILIDADE DE ESTADOS PARA O ALGORITMO: CRIA UM NOVO ESTADO A PARTIR DO ATUAL
 int CompararEstados(Fase *f, Estado *e1, Estado *e2) 	                                                                            VERIFICA SE DOIS ESTADOS GERADOS SAO IGUAIS
 int CriaDistancia(Fase *f) 	                                                                                                        ALOCA DINAMICAMENTE A MATRIZ DE DISTANCIAS UTILIZADA PELA HEURISTICA, GARANTINDO O TRATAMENTO DE FALHAS DE MEMORIA E A LIBERAÇAO DOS RECURSOS JA ALOCADOS QUANDO NECESSARIO
 void Distancias(Fase *f) 	                                                                                                        INICIALIZA A MATRIZ DE DISTANCIA DA FASE, ATRIBUINDO O VALOR INF A TODAS AS POSIÇOES PARA INDICAR QUE AS DISTANCIAS DAS CAIXASA AINDA NAO FORAM CALCULADAS
@@ -34,7 +38,7 @@ Posicao RetirarFila(Fila *fila) 	                                               
 void LiberarFila(Fila *fila) 	                                                                                                    LIBERA TODA MEMORIA ALOCADA PARA FILA
 int CalculoDistanciaObjetivos(Fase *f, int i, Fila *fila) 	                                                                        CALCULA A DISTANCIA A PARTIR DE OBJETIVO ESPECIFICO, CONSIDERANDO MOVIMENTOS PARA CAIXA CHEGAR ATE LA E INDICA QUAL OBJETIVO ESTA SENDO UTILIZADO COMO REFERENCIA PARA O CALCULO
 int PercorrerDistanciaObjetivos(Fase *f)                                                                                            CALCULA A TABELA DE DISTANCIAS DE TODOS OS OBJETIVOS
-int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]) 	                                                    ASSOCIA CADA CAIXA A TODOS OS OBJETIVOS PARA DEPOIS VERIFICAR QUAL O MAIS PROXIMO. ASSOCIADOS[] GUARDA OS OBJETIVOS JA UTILIZADOS NA COMBINACAO COM A CAIXA
+int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]) 	                                                    TESTA TODAS AS COMBINAÇÕES E RETORNA A MENOR SOMA DE EMPURRÕES. ASSOCIADOS[] GUARDA OS OBJETIVOS JA OCUPADOS
 int EstimarCusto(Fase *f, Estado *e) 	                                                                                            CALCULA A ESTIMATIVA DO CUSTO PARA UM DETERMINADO ESTADO
 int CaixaNoObjetivo(Fase *f, int linha, int coluna) 	                                                                            VERIFICA A EXISTENCIA DE OBJETIVO NA POSICAO INFORMADA
 int DistanciaJogador(Fase *f, Estado *e) 	                                                                                        CALCULA A MENOR DISTANCIA ENTRE O JOGADOR E UMA CAIXA FORA DO OBJETIVO. UTILIZA A DISTANCIA DE MANHATTAN
@@ -54,7 +58,7 @@ typedef struct Fase{
     int linhas;
     int colunas;
     Posicao *objetivos;
-    int **distancias;
+    int ***distancias;
 }Fase;
 
 
@@ -81,17 +85,31 @@ typedef struct NoFila{
 }NoFila;
 
 
-
 typedef struct Fila{
     NoFila *inicio;
     NoFila *fim;
 }Fila;
 
 
+typedef struct Lista{
+    No *ini;
+}Lista;
 
 
-//FUNÇÕES RELACIONADAS A CONFIGURAÇÃO DO MAPA, CONFERENCIAS...
-int CriarFase(Fase *f, int linhas, int colunas, int qtd_caixas){  //RESERVA MEMORIA PARA O MAPA, OBJETIVOS E DISTANCIAS
+typedef struct ResultadoTabela{
+    int dificuldade;
+    int caixas;
+    float tempoMs;
+    int nos_expandidos;
+    int profundidade;
+    int custo;
+    int faseConcluida;
+}ResultadoTabela;
+
+
+
+//FUNÇÕES
+int CriarFase(Fase *f, int linhas, int colunas, int qtd_caixas){  //RESERVA MEMORIA PARA O MAPA E OBJETIVOS
     int i;
 
     f->mapa = NULL;  //INICIALIZA O PONTEIRO COM VALOR NULO
@@ -138,7 +156,7 @@ int CriarEstado(Estado *e, int qtd_caixas){  //RESERVAR A QUANTIDADE NECESSARIA 
 
 
 void LiberarFase(Fase *f){  //LIBERA MEMORIA ALOCADA PARA CRIACAO DA FASE, EVITANDO DISPERDICIO
-    int i;
+    int i, j;
 
     if(f->mapa != NULL){  //PERCORRE TODAS AS LINHAS DO MAPA, ENQUANTO NAO FOR NULO, E LIBERA CADA UMA
         for(i = 0; i < f->linhas; i++){
@@ -149,11 +167,17 @@ void LiberarFase(Fase *f){  //LIBERA MEMORIA ALOCADA PARA CRIACAO DA FASE, EVITA
     }
 
     if(f->distancias != NULL){  //DISTANCIAS USADAS PELO A*, SAO ESTIMATIVAS DE DESLOCAMENTO DA CAIXA AO OBJETIVO
-        for(i = 0; i < f->qtd_caixas * f->linhas; i++){  //LIBERA ESTIMATIVAS DE DISTANCIA
-            free(f->distancias[i]);
+       for(i = 0; i < f->qtd_caixas; i++){  //PARA CADA CAMADA (OBJETIVO)
+            if(f->distancias[i] != NULL){  //PODE SER NULO SE A ALOCACAO FALHOU NO MEIO
+                for(j = 0; j < f->linhas; j++){
+                    free(f->distancias[i][j]);  //LIBERA AS COLUNAS
+                }
+
+                free(f->distancias[i]);  //LIBERA AS LINHAS
+            }
         }
 
-        free(f->distancias);
+        free(f->distancias);  //LIBERA AS CAMADAS
     }
 
     free(f->objetivos);  //LIBERA A MEMORIA RESERVADA PARA ARMAZENAR AS POSICOES DE CADA OBJETIVO
@@ -165,7 +189,7 @@ void LiberarEstado(Estado *e){  //LIBERA A MEMORIA ALOCADA PARA A QUANTIDADE DE 
 }
 
 
-void CriarMapa(Fase *f, int mapa[f->linhas][f->colunas]){  //COPIA OS VALORES DA MATRIZ RECEBIDA (FASE) E FAZ A ALOCACAO
+void CriarMapa(Fase *f, int mapa[f->linhas][f->colunas]){  //COPIA OS VALORES DA MATRIZ RECEBIDA (FASE)
     int i, j;
 
     for(i = 0; i < f-> linhas; i++){  //COPIA O VALOR DA POSICAO CORRESPONDENTE DA MATRIZ PASSADA POR PARAMETRO PARA A MATRIZ ALOCADA
@@ -232,7 +256,7 @@ int VerificarMovimento(Fase *f, Estado *e, int direcao){  //VALIDACAO DE MOVIMEN
             break;
 
         default:
-            return 0;  //RETORNA 0 CASO A FUNCAO RECEBA UMA DIRECAO QUE NAO EXISTE ////////////////////////////////////////////////////////////////////////////////////////
+            return 0;
     }
 
     if(novaL < 0 || novaL >= f->linhas || novaC < 0 || novaC >= f->colunas || f->mapa[novaL][novaC] == 1){  //VERIFICA SE A POSICAO PARA ANDAR É VALIDA
@@ -296,7 +320,7 @@ int EstadoSucessor(Fase *f, Estado *atual, int direcao, Estado *novo){  //GERA A
             break;
 
         default:
-            free(novo->caixas); /////////////////////////////////////////////////////////////////////////////////////////
+            free(novo->caixas);
             novo->caixas = NULL;
             return 0;
     }
@@ -352,30 +376,30 @@ int CompararEstados(Fase *f, Estado *e1, Estado *e2){  //VERIFICA SE DOIS ESTADO
 }
 
 
+
 //FUNÇÕES RELACIONADAS AO ALGORITMO A* E HEURÍSTICA
 int CriaDistancia(Fase *f) {
-    int i;
+    int i, j;
 
-    f->distancias = calloc(f->qtd_caixas * f->linhas,sizeof(int *));  //ALOCA AS LINHAS DA MATRIZ DE DISTANCIAS QUE SERA UTILIZADA PELA HEURISTICA. ELA IRA ARMAZENAR INFORMAÇOES SOBRE A DISTANCIA DAS CAIXAS
+    f->distancias = calloc(f->qtd_caixas, sizeof(int **));  //ALOCA UMA CAMADA PARA CADA OBJETIVO.
 
     if(f->distancias == NULL) {
         return 0;  //ALOCACAO DEU ERRADO
     }
 
-    for(i = 0; i < f->qtd_caixas * f->linhas; i++) {
-        f->distancias[i] = malloc(f->colunas * sizeof(int));  //ALOCA AS COLUNAS
+    for(i = 0; i < f->qtd_caixas; i++) {
+        f->distancias[i] = calloc(f->linhas, sizeof(int *));  //ALOCA AS LINHAS DA CAMADA DO OBJETIVO I
 
-        if(f->distancias[i] == NULL) {  //LIBERA TODAS AS LINHAS CASO A ALOCAÇÃO FALHE
+        if(f->distancias[i] == NULL) {
+            return 0;  //O QUE JA FOI ALOCADO SERA LIBERADO PELA LIBERARFASE
+        }
 
-            while(i > 0) {
-                i--;
-                free(f->distancias[i]);
+        for(j = 0; j < f->linhas; j++) {
+            f->distancias[i][j] = malloc(f->colunas * sizeof(int));  //ALOCA AS COLUNAS
+
+            if(f->distancias[i][j] == NULL) {
+                return 0;  //O QUE JA FOI ALOCADO SERA LIBERADO PELA LIBERARFASE
             }
-
-            free(f->distancias);
-            f->distancias = NULL;
-
-            return 0;
         }
     }
 
@@ -384,11 +408,13 @@ int CriaDistancia(Fase *f) {
 
 
 void Distancias(Fase *f) {
-    int i, j;
+    int i, j, k;
 
-    for(i = 0; i < f->qtd_caixas * f->linhas; i++) {
-        for(j = 0; j < f->colunas; j++) {
-            f->distancias[i][j] = INF;  //ATRIBUIMOS UMA DISTANCIA DESCONHECIDA, POIS AS POSICOES DAS CAIXAS AINDA NAO TIVERAM SUAS DISTANCIAS CALCULADAS.
+    for(i = 0; i < f->qtd_caixas; i++) {  //PARA CADA OBJETIVO
+        for(j = 0; j < f->linhas; j++) {
+            for(k = 0; k < f->colunas; k++) {
+                f->distancias[i][j][k] = INF;  //DISTANCIA AINDA NAO CALCULADA, ATRIBUIMOS DISTANCIA DESCONHECIDA. SE CONTINUAR INF APOS A BFS, A CAIXA NAO CHEGA AO OBJETIVO A PARTIR DESSA CASA
+            }
         }
     }
 }
@@ -456,7 +482,7 @@ int InserirFila(Fila *fila, Posicao p){  //INSERE NOVA POSICAO NA FILA
     novo = malloc(sizeof(NoFila));  //ALOCA NOVO NO
 
     if(novo == NULL){
-        exit(1);
+        return 0;
     }
 
     novo->posicao = p;  //ARMAZENA POSICAO RECEBIDA
@@ -465,7 +491,7 @@ int InserirFila(Fila *fila, Posicao p){  //INSERE NOVA POSICAO NA FILA
     if(fila->fim == NULL){  //VERIFICA SE A FILA ESTA VAZIA
         fila->inicio = novo;  //INSERE NO INICIO DA FILA
     }
-    else{  //SE A FILA ESTIVER CHEIA
+    else{  //SE A FILA ESTIVER NAO ESTIVER VAZIA
         fila->fim->prox = novo;  //INSERE NO FINAL
     }
 
@@ -514,8 +540,7 @@ int CalculoDistanciaObjetivos(Fase *f, int i, Fila *fila){  //CALCULA AS DISTANC
     int **dist;  //PONTEIRO PARA ACESSAR A MATRIZ DE DISTANCIAS QUE CORRESPONDE AO OBJETIVO ATUAL
     Posicao atual;
 
-    dist = &f->distancias[i * f->linhas];  //IRA CALCULAR O INDICE DA PRIMEIRA LINHA NA MATRIZ DE DISTANCIAS QUE CORRESPONDE AO OBJETIVO I, OU SEJA, A PARTIR DE QUAL LINHA NA MATRIZ DE DISTANCIAS ENCONTRAMOS O OBJETIVO I
-
+    dist = f->distancias[i]; //PEGA A CAMADA DE OBJETIVOS DA MATRIZ 3D
     l = f->objetivos[i].linha;  //LINHA DO OBJETIVO
     c = f->objetivos[i].coluna;  //COLUNA DO OBJETIVO
 
@@ -528,7 +553,9 @@ int CalculoDistanciaObjetivos(Fase *f, int i, Fila *fila){  //CALCULA AS DISTANC
     atual.linha = l;  //INICIO DA BUSCA
     atual.coluna = c;
 
-    InserirFila(fila, atual);  //INSERE A POSICAO DO OBJETIVO NA FILA
+    if(!InserirFila(fila, atual)){  //INSERE A POSICAO DO OBJETIVO NA FILA, E SE FALHAR, RETORNA 0
+        return 0;
+    }
 
     while(!FilaVazia(fila)){  //ENQUANTO HOUVEREM POSICOES NA FILA
         atual = RetirarFila(fila);  //ARMAZENA POSICAO RETIRADA DA FILA EM ATUAL
@@ -550,7 +577,9 @@ int CalculoDistanciaObjetivos(Fase *f, int i, Fila *fila){  //CALCULA AS DISTANC
                 atual.linha = caixaL;
                 atual.coluna = caixaC;
 
-                InserirFila(fila, atual);  //INSERE NOVA POSICAO NA FILA PARA CONTINUAR EXPLORANDO
+                if(!InserirFila(fila, atual)){  //INSERE NOVA POSICAO NA FILA PARA CONTINUAR EXPLORANDO
+                    return 0;
+                   }
             }
         }
     }
@@ -584,7 +613,6 @@ int PercorrerDistanciaObjetivos(Fase *f){  //CALCULA A TABELA DE DISTANCIAS DE T
 
 int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]){  //ASSOCIA CADA CAIXA A TODOS OS OBJETIVOS PARA DEPOIIS VERIFICAR QUAL O MAIS PROXIMO. ASSOCIADOS[] GUARDA OS OBJETIVOS JA UTILIZADOS NA COMBINACAO COM A CAIXA
     int custo, menor_custo, obj_teste;
-    int linha;
 
     if(caixa == f->qtd_caixas){  //CONDICAO DE PARADA DA FUNCAO RECURSIVA
         return 0;
@@ -596,9 +624,8 @@ int AssociarCaixasObjetivos(Fase *f, Estado *e, int caixa, int associados[]){  /
         if(associados[obj_teste] == 0){  //VERIFICA SE O OBJETIVO JA FOI ASSOCIADO, CASO NAO
             associados[obj_teste] = 1; //ASSOCIA A CAIXA AO OBJETIVO
 
-            linha = (obj_teste * f->linhas) + e->caixas[caixa].linha;  //CALCULA A LINHA NA MATRIZ DE DISTANCIAS. OBJ_TESTE * F->LINHAS CORRESPONDE AO OBJETIVO ANALISADO, OU SEJA, A LINHA DELE NA MATRIZ DE DISTANCIAS. EM SEGUIDA, IREMOS OBTER A LINHA DA CAIXA. O RESULTADO SERA A LINHA ACESSADA NA MATRIZ DE DISTANCIAS
-            custo = f->distancias[linha][e->caixas[caixa].coluna]+ AssociarCaixasObjetivos(f, e, caixa + 1, associados);  //ANTES DA RECURSAO: ACESSA A MATRIZ DE DISTANCIAS E OBTEM O CUSTO P LEVAR A CAIXA AO OBJETIVO, REPRESENTANDO O MINIMO DE MOVIMENTOS. APOS RECURSAO: ANALISA A PROXIMA CAIXA E SOMA O CUSTO
-
+            custo = f->distancias[obj_teste][e->caixas[caixa].linha][e->caixas[caixa].coluna]+ AssociarCaixasObjetivos(f, e, caixa + 1, associados);  //ANTES DA RECURSAO: ACESSA A MATRIZ DE DISTANCIAS E OBTEM O CUSTO P LEVAR A CAIXA AO OBJETIVO, REPRESENTANDO O MINIMO DE MOVIMENTOS. APOS RECURSAO: ANALISA A PROXIMA CAIXA E SOMA O CUSTO
+            //MELHOR COMBINACAO DAS CAIXAS
             associados[obj_teste] = 0;  //NECESSARIO LIBERAR OBJETIVO PARA ANALISE DA PROXIMA CAIXA. BACKTRACKING. EXPERIMENTA UMA POSSIBILIDADE, LIBERA E TESTA OUTRA
 
             if(custo < menor_custo){  //ATUALIZA MENOR CUSTO COM O MENOR VALOR
@@ -620,7 +647,7 @@ int EstimarCusto(Fase *f, Estado *e){  //CALCULA A ESTIMATIVA DO CUSTO PARA UM D
     }
 
     estimativa = AssociarCaixasObjetivos(f, e, 0, associados);  //RETORNA O CALCULO DA ESTIMATIVA APOS ASSOCIAR CAIXA A OBJETIVOS
-    return  estimativa
+    return  estimativa;
 }
 
 
@@ -657,5 +684,681 @@ int DistanciaJogador(Fase *f, Estado *e){  //CALCULA A MENOR DISTANCIA ENTRE O J
     }
 
     return menor - 1;  //CONSIDERA QUE O JOGADOR JA ESTA ATRAS DA CAIXA (SEMPRE QUE ELE VAI DEIXAR A CAIXA NO OBJETIVO ELE ANDA - 1 POSICAO QUE A CAIXA)
+}
+
+
+Lista* CriarLista(){  //CRIA A LISTA DINAMICAMENTE
+    Lista *l;
+    l = malloc(sizeof(Lista));
+
+    if(l == NULL){  //CAO A ALOCAÇAO FALHE
+        return NULL;
+    }
+
+    l->ini = NULL;  //INICIALIZA O PONTEIRO COM NULO LOGO APOS A CRIACAO DA LISTA
+    return l;  //RETORNA O PONTEIRO LISTA
+}
+
+
+int ListaVazia(Lista *l){
+    if(l->ini == NULL){  //VERIFICA SE LISTA NAO ESTÁ APONTANDO PARA NENHUM NO
+        return 1;  //RETORNA CASO A LISTA ESTEJA VAZIA
+    }
+
+    return 0;  //RETORNA CASO A LISTA NAO ESTEJA VAZIA
+}
+
+
+int Prioridade(No *no1, No *no2){  //IRÁ COMPARAR DOIS NOS DO A* E VERIFICAR QUAL POSSUI PRIORIDADE COM BASE EM VARIAVEIS
+    if (no1->f < no2->f) {  //COMPARA A ESTIMATIVA DO CUSTO TOTAL
+        return 1;  //SEMPRE RETORNARÁ 1 SE A VARIAVEL DO NO 1 CORRESPONDER A UM VALOR MENOR
+    }
+    else {
+        if (no1->f > no2->f) {
+            return 0;  //SEMPRE RETORNARA 0 CASO A ESTIMATIVA DO NO 2 CORRESPONDER A UM VALOR MENOR
+        }
+        else {
+            if (no1->h < no2->h) {  //COMPARA A ESTIMATIVA DO CUSTO RESTANTE ATÉ O OBJETIVO
+                return 1;
+            }
+            else {
+                if (no1->h > no2->h) {
+                    return 0;
+                }
+                else {  //SE F E H FOREM IGUAIS NOS DOIS NÓS, UTILIZA A VARIAVEL DESEMPATE: CONDIZ NA DISTANCIA ENTRE O JOGADOR E A CAIXA. A MENOR DISTANCIA TEM PRIORIDADE
+                    if (no1->desempate < no2->desempate) {
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void InserirListaOrdenada(Lista *l, No *novo){
+    No *atual;  //PONTEIRO AUXILIAR PARA PERCORRER A LISTA
+
+    if(l->ini == NULL || Prioridade(novo, l->ini)){
+        novo->prox = l->ini;  //NOVO NO APONTARA PARA O PRIMEIRO ELEMENTO DA LISTA OU NULO
+        l->ini = novo;  //INICIO DA LISTA DEVERA APONTAR PARA NOVO, O MENOR VALOR ATE O MOMENTO
+    }
+
+    else{
+        atual = l->ini;  //PONTEIRO AUXILIAR IRA RECEBER O ENDEREÇO DO PRIMEIRO DA LISTA
+
+        while(atual->prox != NULL && !Prioridade(novo, atual->prox)){
+            atual = atual->prox;  //IRA AVANÇAR PARA O PROXIMO NO DA LISTA, ENQUANTO HOUVER NÓS OU ENQUANTO O NÓ ANTERIOR POSSUIR UM VALOR MENOR DO QUE AQUELE QUE SERA INSERIDO
+        }
+        novo->prox = atual->prox;  //NOVO APONTA PARA O ELEMENTO QUE VEM DEPOIS DE ATUAL, OU SEJA, SEU SUCESSOR
+        atual->prox = novo;  //ATUAL APONTA PARA NOVO, ATUAL É ANTECESSOR DE NOVO PQ POSSUI VALOR MENOR
+    }
+}
+
+
+No* RemoverInicio(Lista *l){
+    No *primeiro;  //PONTEIRO PARA ARMAZENAR O PRIMEIRO VALOR DA LISTA
+
+    if(l->ini == NULL){  //VERIFICA SE A LISTA ESTA VAZIA
+        return NULL;
+    }
+
+    primeiro = l->ini;  //ARMAZENA O ENDEREÇO DO PRIMEIRO VALOR DA LISTA
+    l->ini = primeiro->prox;  //ATUALIZA O PRIMEIRO VALOR DA LISTA
+    primeiro->prox = NULL;  //DESVINCULA O NO DO RESTANTE DA LISTA
+
+    return primeiro;  //RETORNA O ENDERÇO DO NO REMOVIDO
+}
+
+
+void LiberarLista(Lista *l){  //LIBERA A MEMORIA ALOCADA PARA TODOS OS NOS DA LISTA
+    No *atual;
+
+    while(l->ini != NULL){
+        atual = l->ini;  //ARMAZENA O ENDERÇO DO PRIMEIRO NO
+        l->ini = atual->prox;  //ATUALIZA O INICIO DA LISTA
+
+        free(atual->estado.caixas);  //LIBERA A MEMORIA ALOCADA PARA ARMAZENAR AS POSICOES DAS CAIXAS
+        free(atual);  //LIBERA A MEMORIA ALOCADA PARA O NO
+    }
+    free(l);  //LIBERA A ESTRUTURA DA LISTA
+}
+
+
+int CopiarEstado(Fase *f, Estado *partida, Estado *chegada){  //COPIA INFORMACOES DE UM ESTADO PARA OUTRO
+    int i;
+    chegada->caixas = malloc(f->qtd_caixas * sizeof(Posicao));  //ALOCA MEMORIA PARA ARMAZENAR AS POSICOES DA CAIXA NO ESTADO CHEGADA
+
+    if(chegada->caixas == NULL){  //VERIFICA SE A ALOCAÇAO FALHOU
+        return 0;
+    }
+
+    chegada->jogador = partida->jogador;  //COPIA A POSICAO DO JOGADOR NO ESTADO DE PARTIDA PARA O ESTADO SEGUINTE, CHEGADA
+
+    for(i = 0; i < f->qtd_caixas; i++){  //VISITA TODAS AS CAIXAS
+        chegada->caixas[i] = partida->caixas[i];  //COPIA A POSICAO DAS CAIXAS NO VETOR DE CHEGADA
+    }
+
+    return 1;
+}
+
+
+void CalculoCustoH(Fase *f, No *no, No *ant){
+    if(ant == NULL){  //VERIFICA SE NO ANTERIOR CORRESPONDE A UM ESTADO INICIAL
+        no->g = 0;  //CUSTO ACUMULADO DEFINIDO COM 0 POIS AINDA NAO FORAM REALIZADOS MOVIMENTOS
+    }
+
+    else{
+        no->g = ant->g + 1;  //SOMA 1 AO CUSTO ACUMULADO DO NO ANTERIOR, POIS UM MOVIMENTO REALIZADO PARA CHEGAR AO NOVO ESTADO CUSTA 1
+    }
+
+    no->h = EstimarCusto(f, &no->estado);  //CALCULA A ESTIMATIVA DE CUSTO RESTANTE PARA RESOLVER A FASE
+    no->f = no->g + no->h;  //CALCULA O CUSTO TOTAL SOMANDO O CUSTO ACUMULADO COM A ESTIMATIVA RESTANTE
+    no->desempate = DistanciaJogador(f, &no->estado);  //CALCULO DA MENOR DISTANCIA ENTRE O JOGADOR E UMA CAIXA QUE AINDA NA ESTA NO OBJETIVO
+}
+
+
+No* CriarNo(Fase *f, Estado *e, No *ant){  //CRIA O NO UTILIZADO PELO A*
+    No *novo;
+    novo = malloc(sizeof(No));  //ALOCA MEMORIA PARA ARMAZENAR ESTRUTURA DO TIPO NO
+
+    if(novo == NULL){  //VERIFICA SE A ALOCAÇAO FALHOU
+        return NULL;
+    }
+
+    if(!CopiarEstado(f, e, &novo->estado)){  //CASO NAO SEJA POSSIVEL COPIAR O ESTADO
+        free(novo);  //LIBERA MEMORIA ALOCADA PARA NO
+        return NULL;
+    }
+
+    novo->anterior = ant;  //ARMAZENA ENDEREÇO DO NO ANTERIOR (PERMITE RECONSTRUIR O CAMINHO DE BUSCA)
+    novo->prox = NULL;  //NOVO APONTA PARA NULO
+
+    CalculoCustoH(f, novo, ant);  //CALCULA OS VALORES DE G, H, F, DESEMPATE PARA SER UTILIZADO NO NOVO NÓ
+
+    return novo;  //RETORNA NÓ CRIADO
+}
+
+
+int EstadoNaLista(Fase *f, Lista *l, Estado *e){  //VERIFICA SE O ESTADO DO JOGO JA FOI ARMAZENADO NA LISTA
+    No *atual;
+
+    atual = l->ini;  //PONTEIRO AUXILIAR INICIALIZA COM O ENDEREÇO DO PRIMEIRO VALOR DA LISTA
+
+    while(atual != NULL){  //PERCORRE A LISTA ENQUANTO HOUVEREM NÓS
+        if(CompararEstados(f, e, &atual->estado)){  //VERIFICA SE O ESTADO RECEBIDO É IGUAL AO ESTADO ARMAZENADO NO NÓ ATUAL
+            return 1;  //INDICA QUE O ESTADO FOI ENCONTRADO E NAO É NECESSARIO PERCORRER MAIS NÓS
+        }
+
+        atual = atual->prox;  //AVANÇA PARA O PROXIMO VALOR PARA VERIFICAR O PROXIMO ESTADO, CASO NAO TENHA ENTRADO NO IF
+    }
+
+    return 0;  //CASO NAO ENCONTRE ESTADO NA LISTA
+}
+
+
+int Sucesso(Fase *f, Estado *e){  //VERIFICA SE O ESTADO ATUAL REPRESENTA A SOLUÇAO
+    int i;
+
+    for(i = 0; i < f->qtd_caixas; i++){  //PERCORRE AS CAIXAS DA FASE
+        if(!CaixaNoObjetivo(f, e->caixas[i].linha, e->caixas[i].coluna)){  //CASO A CAIXA NAO ESTEJA SOBRE O OBJETIVO
+            return 0;  //SIGNIFICA QUE HÁ PELO MENOS UMA CAIXA QUE NAO ESTA NO OBJETIVO
+        }
+    }
+
+    return 1;  //CASO TODAS AS CAIXAS ESTEJAM SOBRE OBJETIVOS
+}
+
+
+void NoSucessor(Fase *f, No *ant, int direcao, Lista *aberta, Lista *fechada){
+    No *sucessor;
+    Estado novoEstado;
+
+    if(VerificarMovimento(f, &ant->estado, direcao)){  //SO CONTINUA SE O MOVIMENTO FOR VALIDO
+        if(EstadoSucessor(f, &ant->estado, direcao, &novoEstado)){  //SO CONTINUA SE O NOVO ESTADO FOI CRIADO
+            if(!EstadoNaLista(f, fechada, &novoEstado)){  //SO CONTINUA SE O ESTADO AINDA NAO FOI EXPANDIDO
+                sucessor = CriarNo(f, &novoEstado, ant);
+
+                if(sucessor != NULL){
+                    if(sucessor->h >= INF){  //DEADLOCK: ALGUMA CAIXA NAO CHEGA EM NENHUM OBJETIVO, DESCARTA O NO
+                        free(sucessor->estado.caixas);
+                        free(sucessor);
+                    }
+                    else{
+                        InserirListaOrdenada(aberta, sucessor);  //NO VALIDO, ENTRA NA LISTA ABERTA ORDENADO POR F
+                    }
+                }
+            }
+
+            LiberarEstado(&novoEstado);  //LIBERA O ESTADO EM TODOS OS CASOS (A CRIARNO JA FEZ UMA COPIA)
+        }
+    }
+}
+
+
+void ExpandirNo(Fase *f, No *atual, Lista *aberta, Lista *fechada){  //EXPANDE UM NO TENTANDO GERA POSSIVEIS ESTADOS
+    int i;
+
+    for(i = 0; i < 4; i++){  //CADA ITERAÇAO REPRESENTA UMA DIREÇAO
+        NoSucessor(f, atual, i, aberta, fechada);  //GERA UM NOVO ESTADO A PARTIR DO ATUAL
+    }
+}
+
+
+No* AEstrela(Fase *f, Estado *inicial, Lista *aberta, Lista *fechada, int *expandidos){  //A PARTIR DO ESTADO INCIAL, ESPLORA OS ESTADOS DE ACORDO COM SUA PRIORIDADE
+    No *atual, *ant;  //ATUAL ESTA SENDO EXPLORADO, ANT ARMAZENA O NO ANTERIOR (ESTADO INICIAL)
+
+    *expandidos = 0;  //CONTADOR DE NOS EXPANDIDOS INICIA EM 0
+
+    ant = CriarNo(f, inicial, NULL);  //CRIA O PRIMEIRO NO UTILIZANDO O ESTADO INICIAL
+
+    if(ant == NULL){  //VERIFICA SE A CRIAÇAO DEU ERRADO
+        return NULL;
+    }
+
+    if(ant->h >= INF){  //VERIFICA SE A ESTIMATIVA DA HEURISTICA É INVIAVEL
+        free(ant->estado.caixas);  //LIBERA ALOCAÇAO DO VETOR DE CAIXAS
+        free(ant);  //LIBERA NO INICIAL
+        return NULL;  //ENCERRA A BUSCA PQ ANT NAO PODE SER EXPLORADO
+    }
+
+    InserirListaOrdenada(aberta, ant);  //INSERE NO NA LISTA ABERTA, ORGANIZADA POR PRIORIDADE DE CUSTO
+
+    while(!ListaVazia(aberta)){  //CONTINUA ENQUANTO A LISTA ABERTA NAO ESTIVER VAZIA
+        atual = RemoverInicio(aberta);  //REMOVE PRIMEIRO NO DA LISTA ABERTA, ARMAZENANDO-O EM ATUAL
+
+        if(EstadoNaLista(f, fechada, &atual->estado)){  //VERIFICA SE O ESTADO DO NO JÁ ESTA NA LISTA FECHADA
+            free(atual->estado.caixas);
+            free(atual);
+        }
+        else{
+            InserirListaOrdenada(fechada, atual);  //CASO O ESTADO NAO ESTEJA NA LISTA, INSERE NO ATUAL NA LISTA FECHADA. O ESTADO PASSA A SER REGISTRADO COMO EXPLORADO
+
+            if(Sucesso(f, &atual->estado)){  //VERIFICA SE O ESTADO REPRESENTA SOLUÇAO
+                return atual;  //RETORNA NO QUE REPRESENTA SOLUÇAO
+            }
+
+            (*expandidos)++;  //AUMENTA A QUANTIDADE DE NOS EXPANDIDOS
+            ExpandirNo(f, atual, aberta, fechada);  //NECESSARIO GERAR POSSIVEIS SUCESSORES CASO A SOLUÇAO AINDA NAO TENHA SIDO ENCONTRADA
+        }
+    }
+
+    return NULL;  //CASO A LISTA FIQUE VAZIA, INDICA QUE A* NAO ENCONTROU CAMINHO PARA RESOLUÇAO DA FASE
+}
+
+
+void ImprimirMapa(Fase *f, Estado *e){  //IMPRIME O MAPA UTILIZANDO SIMBOLOS UNICODE ESCOLHIDOS
+    int i, j, jogador, caixa, objetivo;  //JOGADOR, CAIXA E OBJETIVOS FICAM ARMAZENADOS EM VETORES SEPARADOS DO MAPA, PORTANTO É IMPORTANTE VERIFICAR POSICOES
+
+    for(i = 0; i < f->linhas; i++){
+        for(j = 0; j < f->colunas; j++){
+            jogador = (e->jogador.linha == i && e->jogador.coluna == j);  //VERIFICA SE O JOGADOR ESTA NA POSICAO ATUAL DA MATRIZ
+            caixa = (EncontrarCaixa(f, e, i, j) != -1);  //VERIFICA A EXISTENCIA DE CAIXA NA POSICAO ATUAL
+            objetivo = CaixaNoObjetivo(f, i, j);  //VERIFICA SE A POSICAO CORRESPONDE A UM OBJETIVO
+
+            if(jogador && objetivo){
+                printf("\u263B ");  //JOGADOR SOBRE O OBJETIVO
+            }
+            else{
+                if(jogador){
+                    printf("\u263A ");  //JOGADOR
+                }
+                else{
+                    if(caixa && objetivo){
+                        printf("\u2605 ");  //CAIXA SOBRE O OBJETIVO
+                    }
+                    else{
+                        if(caixa){
+                            printf("\u2612 ");  //CAIXA
+                        }
+                        else{
+                            if(f->mapa[i][j] == 1){
+                                printf("# ");  //PAREDE
+                            }
+                            else{
+                                if(objetivo){
+                                    printf("\u25CB ");  //OBJETIVO VAZIO
+                                }
+                                else{
+                                    printf("  ");  //CHAO VAZIO
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        printf("\n");  //FIM DE UMA LINHA DO MAPA
+    }
+
+    printf("\n");
+}
+
+
+No *ResolveFase(Fase *f, Estado *inicial, Lista *aberta, Lista *fechada, int *expandidos){  //RESOLVE A FASE EM ETAPAS, DE ACORDO COM OS NOS EXPANDIDOS, PARA FAZER A CONFIGURAÇAO DO MAPA ATUALIZADO
+    No *solucao;  //ARMAZENA O RESULTADO RETORNADO PELO A*
+    if(!CriaDistancia(f)){  //VERIFICA SE FOI POSSIVEL OU NAO REALIZAR AS AÇOES DA FUNCAO, CASO NAO, RETORNA NULO
+        return NULL;
+    }
+
+    Distancias(f);  //CALCULA E PREENCHE AS INFORMAÇOES SOBRE DISTANCIA DA FASE
+
+    if(!PercorrerDistanciaObjetivos(f)){
+        return NULL;
+    }
+
+    solucao = AEstrela(f, inicial, aberta, fechada, expandidos);  //O RESULTADO DO A* É ARMAZENADO EM SOLUCAO, SE ENCONTRAR UMA SOLUCAO, O PONTEIRO APONTA PARA O PROXIMO NO
+    return solucao;
+}
+
+
+void AnimarMapaSolucao(Fase *f, No *no, int nivel, int numeroFase, int velocidadeMs){  //ANIMA A SOLUCAO, FAZ O BONECO SE MOVIMENTAR E MOVIMENTAR AS CAIXAS
+    //USO DE RECURSAO PARA PERCORRER NOS ANTERIORES A SOLUÇAO E ANIMAR O MAPA. O CAMINHO É RECONSTRUIDO VISUALMENTE
+    if(no != NULL){  //SE O PONTEIRO NAO FOR NULO, ELA ANIMA. CONDICAO DE PARADA DA RECURSIVIDADE.
+        AnimarMapaSolucao(f, no->anterior, nivel, numeroFase, velocidadeMs);  //PERCORRE OS NOS DE TRAS PARA FRENTE, OU SEJA, DA SOLUCAO AO ESTADO INICIAL E PARA QWUANDO CHEGA NO ESTADO INICIAL
+        system("cls");  //FAZ O PRINT DE UM ESTADO DE CADA VEZ, DANDO EFEITO DE MOVIMENTAÇAO
+        printf("\nNIVEL %d - FASE %02d \n\n", nivel, numeroFase);  //MOSTRA QUAL NIVEL E FASE ESTAO SENDO EXECUTADOS
+        ImprimirMapa(f, &no->estado);  //EXIBE O ESTADO ATUAL, AGORA PARTINDO DO INICIO EM DIRECAO A SOLUÇAO
+        Sleep(velocidadeMs);  //TEMPO EM QUE CADA ESTADO APARECE NA TELA (EM MILIS)
+
+    }
+}
+
+
+
+//FUNCOES RELACIONADAS A MAIN E RESULTADO FINAL
+void ImprimirTabelaResultados(ResultadoTabela r[], int qtdFases){  //APRESENTA A TABELA COMPARATIVA DAS FASES DO NIVEL EXECUTADO, APOS SUA EXECUÇAO. R ARMAZENA OS RESULTADOS E QTFFASES INFORMA QUANTAS POSICOES TERA O VETOR
+    int i;
+
+    printf("\n------------------- TABELA COMPARATIVA: RESULTADOS ALGORITMO A* -------------------");  //IMPRESSAO DO CALENDARIO DAS INFORMACOES
+    printf("\n Fase | Dificuldade | Caixas | Tempo (ms) | Nos Expandidos | Profundidade | Custo |");
+    printf("\n------+-------------+--------+------------+----------------+--------------+-------+");
+
+    for(i = 0; i < qtdFases; i++){  //PERCORRE AS POSICOES DO VETOR DE ACORDO COM A QUANTIDADE DE FASES DO NIVEL
+        printf("\n %02d   |", i + 1);
+
+        switch(r[i].dificuldade){  //VERIFICA O VALOR ARMAZENADO EM DIFICULDADE
+            case 1:
+                printf(" Facil       |");
+                break;
+
+            case 2:
+                printf(" Medio       |");
+                break;
+
+            case 3:
+                printf(" Dificil     |");
+                break;
+
+            default:
+                printf(" -           |");
+                break;
+        }
+
+        printf(" %6d | %10.4f | %14d |", r[i].caixas, r[i].tempoMs, r[i].nos_expandidos);
+
+        if(r[i].faseConcluida){  //SE A FASE FOR CONCLUIDA COM SUCESSO, EXIBE AS INFORMAÇOES
+            printf(" %12d | %5d |", r[i].profundidade, r[i].custo);
+        }
+
+        else{
+            printf(" Sem solucao  |     - |");
+        }
+    }
+
+    printf("\n------+-------------+--------+------------+----------------+--------------+-------+\n");
+}
+
+
+int CarregarFaseFacil(int numeroFase, Fase *f, Estado *e){  //PREPARA OS MAPAS DO NIVEL FACIL, CAIXAS, OBJETIVOS E JOGADOR
+    switch(numeroFase){  //EXECUTA CADA CASE CONFORME O VALOR DA VARIVAEL NUMEROFASE
+        case 1:{
+           int mapa[6][6] = {
+                {1, 1, 1, 1, 1, 1},
+                {1, 0, 1, 1, 1, 1},
+                {1, 0, 0, 0, 1, 1},
+                {1, 0, 0, 1, 1, 1},
+                {1, 1, 0, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[2] = {{1, 1}, {2, 3}};  //VETOR DE POSICAO DOS OBJETIVOS
+            Posicao caixas[2] = {{2, 1}, {3, 2}};  //VETOR DE POSICAO DAS CAIXAS
+            Posicao jogador = {4, 2};  //POSICAO DO JOGADOR
+
+            if(!CriarFase(f, 6, 6, 2) || !CriarEstado(e, 2)){  //VERIFICA SE A CRIACAO DEU ERRADO, CASO UMA DAS OPERACOES FALHE, RETORNA 0
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);  //INICIALIZA A FASE PREENCHENDO OS VALORES NO MAPA
+            break;
+        }
+
+        case 2:{
+            int mapa[6][6] = {
+                {1, 1, 1, 1, 1, 1},
+                {1, 1, 0, 0, 0, 1},
+                {1, 1, 1, 0, 0, 1},
+                {1, 1, 0, 0, 0, 1},
+                {1, 1, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[2] = {{1, 2}, {3, 4}};  //VETOR DE POSICAO DOS OBJETIVOS
+            Posicao caixas[2] = {{2, 3}, {3, 3}};  //VETOR DE POSICAO DAS CAIXAS
+            Posicao jogador = {3, 2};  //POSICAO DO JOGADOR
+
+            if(!CriarFase(f, 6, 6, 2) || !CriarEstado(e, 2)){  //VERIFICA SE A CRIACAO DEU ERRADO, CASO UMA DAS OPERACOES FALHE, RETORNA 0
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);  //INICIALIZA A FASE PREENCHENDO OS VALORES NO MAPA
+            break;
+        }
+
+        default:
+            return 0;  //FASE INEXISTENTE
+    }
+
+    return 1;
+}
+
+
+int CarregarFaseMedio(int numeroFase, Fase *f, Estado *e){
+    switch(numeroFase){
+        case 1:{
+            int mapa[7][7] = {
+                {1, 1, 1, 1, 1, 1, 1},
+                {1, 1, 0, 0, 0, 1, 1},
+                {1, 1, 0, 0, 0, 1, 1},
+                {1, 1, 0, 0, 0, 0, 1},
+                {1, 1, 1, 0, 0, 1, 1},
+                {1, 0, 0, 0, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[2] = {{1, 2}, {3, 5}};
+            Posicao caixas[2] = {{1, 3}, {4, 3}};
+            Posicao jogador = {5, 1};
+
+            if(!CriarFase(f, 7, 7, 2) || !CriarEstado(e, 2)){
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);
+            break;
+        }
+
+        case 2:{
+            int mapa[9][9] = {
+                {1, 1, 1, 1, 1, 1, 1, 1, 1},
+                {1, 0, 0, 0, 0, 1, 1, 1, 1},
+                {1, 0, 0, 0, 0, 0, 0, 1, 1},
+                {1, 1, 0, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 1, 1, 0, 0, 1, 1},
+                {1, 1, 1, 1, 1, 0, 0, 0, 1},
+                {1, 1, 1, 1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[2] = {{1, 4}, {7, 7}};
+            Posicao caixas[2] = {{3, 2}, {4, 6}};
+            Posicao jogador = {6, 2};
+
+            if(!CriarFase(f, 9, 9, 2) || !CriarEstado(e, 2)){
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);
+            break;
+        }
+
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
+
+int CarregarFaseDificil(int numeroFase, Fase *f, Estado *e){
+    switch(numeroFase){
+        case 1:{
+            int mapa[11][11] = {
+                {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1},
+                {1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1},
+                {1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1},
+                {1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1},
+                {1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1},
+                {1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1},
+                {1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1},
+                {1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1},
+                {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[3] = {{8, 1}, {5, 9}, {2, 8}};
+            Posicao caixas[3] = {{4, 1}, {7, 6}, {2, 4}};
+            Posicao jogador = {3, 1};
+
+            if(!CriarFase(f, 11, 11, 3) || !CriarEstado(e, 3)){
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);
+            break;
+        }
+
+        case 2:{
+            int mapa[12][12] = {
+                {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+                {1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1},
+                {1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1},
+                {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+                {1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1},
+                {1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1},
+                {1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+            };
+
+            Posicao objetivos[3] = {{1, 9}, {5, 1}, {10, 7}};
+            Posicao caixas[3] = {{4, 9}, {2, 2}, {7, 4}};
+            Posicao jogador = {5, 7};
+
+            if(!CriarFase(f, 12, 12, 3) || !CriarEstado(e, 3)){
+                return 0;
+            }
+
+            InicializarFase(f, e, mapa, objetivos, caixas, jogador);
+            break;
+        }
+
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
+
+int CarregarFase(int nivel, int numeroFase, Fase *f, Estado *e){  //RECEBE O NIVEL DE DIFICULDADE ESCOLHIDO PELO USUARIO NA MAIN, COM ISSO, EXECUTA O CASE
+    switch(nivel){
+        case 1:
+            return CarregarFaseFacil(numeroFase, f, e);  //CARREGA AS FASES DO NIVEL DE DIFICULDADE ESCOLHIDO
+
+        case 2:
+            return CarregarFaseMedio(numeroFase, f, e);
+
+        case 3:
+            return CarregarFaseDificil(numeroFase, f, e);
+
+        default:
+            return 0;
+    }
+}
+
+
+void LimparBuffer(){  //LIMPEZA DE BUFFER, CONFERE ENTRADA DE CARACTERES E FAZ LIMPEZA CASO O FINAL DO VALOR INSERIDO SEJA != 1 (FINAL 1 REPRESENTA NUMERO)
+    int c;
+
+    do{
+        c = getchar();
+    }while(c != '\n' && c != EOF);
+}
+
+
+void ExecutarNivel(int nivel, int velocidadeMs){  //PROCESSO DE RESOLUCAO DE CADA FASE DENTRO DO NIVEL DE DIFICULDADE
+    int i;  //CONTROLA O LACO PARA PERCORRER AS FASES
+    int numeroFase;  //NUMERO DA FASE EXECUTADA
+    int expandidos;  //NOS EXPANDIDOS PELO ALGORITMO
+    Lista *aberta, *fechada;  //LISTAS QUE ARMAZENAM OS NOS
+    No *solucao;  //ARMAZENA O RESULTADO QUE SERA RETORNADO PELA FUNCAO RESOLVERFASE
+    ResultadoTabela resultados[QTD_FASES] = {0};  //CADA POSICAO DO VETOR ARMAZENA O RESULTADO DE UMA FASE
+    LARGE_INTEGER frequencia, inicio, fim;  //VARIAVEIS DO TIPO CLOCK PARA DETERMINAR O TEMPO DE EXECUCAO DO ALGORITMO
+
+    QueryPerformanceFrequency(&frequencia);
+
+    for(i = 0; i < QTD_FASES; i++){  //PERCORRE TODAS AS FASES
+        Fase fase = {0};
+        Estado inicial = {0};  //ARMAZENA O ESTADO INICIAL DO JOGO
+
+        numeroFase = i + 1;  //CASE NAO INICIA EM 0, NECESSARIO SOMAR 1 PARA EXECUTAR CADA FASE
+        resultados[i].dificuldade = nivel;  //PREENCHE O NIVEL DE DIFICULDADE
+
+        aberta = CriarLista();
+        fechada = CriarLista();
+
+        if(aberta == NULL || fechada == NULL || !CarregarFase(nivel, numeroFase, &fase, &inicial)){  //VERIFICAÇAO DE ERROS DURANTE A PREPARACAO DA FASE
+            resultados[i].faseConcluida = 0;
+            printf("\nErro ao carregar a fase %02d", numeroFase);
+        }
+
+        else{  //BLOCO EXECUTADO QUANDO A CRIAÇAO DE LISTAS E PREPARACAO OCORREM BEM
+            system("cls");
+            printf("\nNIVEL %d - FASE %02d \n\n", nivel, numeroFase);  //EXIBE O NIVEL E FASE QUE ESTAMOS EXECUTANDO
+            ImprimirMapa(&fase, &inicial);  //APRESENTA O ESTADO INICIAL NA TELA
+
+            resultados[i].caixas = fase.qtd_caixas;  //ARMAZENA A QUANTIDADE DE CAIXAS NA FASE
+
+            expandidos = 0;  //INICIA O CONTADOR DE NOS
+            QueryPerformanceCounter(&inicio);  //INICIO DA CONTAGEM DE MILIS DE RESOLUCAO
+            solucao = ResolveFase(&fase, &inicial, aberta, fechada, &expandidos); //RESOLVE A FASE
+            QueryPerformanceCounter(&fim);  //FIM DA CONTAGEM
+
+            resultados[i].tempoMs = (float)((fim.QuadPart - inicio.QuadPart) * 1000.0) / (float)frequencia.QuadPart;  //CALCULO DO TEMPO DE EXECUCAO EM MS (1000 = CONVERSAO EM MILISSEGUNDOS, CLOCKS_PER_SEC = QUANTOS CICLOS DE CLOCK CORRESPONDEM A UM SEGUNDO)
+            resultados[i].nos_expandidos = expandidos;  //ARMAZENA A QUANTIDADE DE NOS EXPANDIDOS
+
+            if(solucao == NULL){  //VERIFICA SE O ALGORITMO ENCONTROU SOLUCAO
+                resultados[i].faseConcluida = 0;
+                printf("\nNenhuma solucao encontrada pelo algoritmo A-Estrela na fase %02d", numeroFase);
+            }
+
+            else{
+                resultados[i].faseConcluida = 1;  //FASE CONCLUIDA
+                resultados[i].profundidade = solucao->g;  //PROFUNDIDADE DA SOLUCAO (G = CUSTO ACUMULADO)
+                resultados[i].custo = solucao->g;
+                AnimarMapaSolucao(&fase, solucao, nivel, numeroFase, velocidadeMs);  //ANIMA ANTES DE LIBERAR AS LISTAS, POIS A SOLUCAO ESTA NA FECHADA
+                printf("\nSolucao encontrada! A fase foi resolvida!");
+                printf("\nMovimentos: %d | Nos expandidos: %d", solucao->g, expandidos);
+            }
+        }
+
+        if(aberta != NULL){  //SO LIBERA O QUE FOI CRIADO
+            LiberarLista(aberta);
+        }
+
+        if(fechada != NULL){
+            LiberarLista(fechada);
+        }
+
+        LiberarFase(&fase);  //A FASE E LIBERADA ANTES DE CARREGAR A PROXIMA: SO UMA FASE NA MEMORIA POR VEZ
+        LiberarEstado(&inicial);  //LIBERA O ESTADO INICIAL, INCLUINDO OS VETORES DE POSICAO, ANTES DA EXECUCAO DA PROXIMA FASE
+
+        if(i < QTD_FASES - 1){
+            printf("\n\nPressione uma tecla para resolver a proxima fase");
+        }
+
+        else{
+            printf("\n\nFim da resolucao das fases do nivel!");
+            printf("\nPressione uma tecla para visualizar a tabela de resultados");
+        }
+
+        getch();  //AGUARDA O USUARIO PRESSIONAR UMA TECLA PARA EXIBIR A PROXIMA RESOLUCOA
+    }
+
+    system("cls");
+    ImprimirTabelaResultados(resultados, QTD_FASES);  //EXIBICAO DA TABELA DE RESULTADOS APOS A EXECUCAO DE TODAS AS FASES
+    printf("\nPressione uma tecla para voltar ao menu");
+    getch();
 }
 #endif // LISTA_H_INCLUDED
