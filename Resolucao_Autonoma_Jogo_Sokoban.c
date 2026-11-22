@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <conio.h>
-#include "lista.h"
+#include "Lista_Resolucao_Autonoma_Sokoban.h"
 
 int main(){
     SetConsoleOutputCP(CP_UTF8);
@@ -17,10 +17,10 @@ int main(){
     printf("\n-----------------------------------------------------------------------");
     printf("\nSokoban eh um jogo de logica no qual o jogador deve movimentar caixas \npor todo o mapa ate posiciona-las sobre seus objetivos.");
     printf("\nTendo isso em vista, eh necessario que o jogador planeje suas jogadas, \npois as caixas so podem ser empurradas e nao podem atravessar \nparedes.");
-    printf("\n\nO programa utiliza o algoritmo de busca A-Estrela para encontrar solucao \npara --- fases do jogo, com diferentes niveis de dificuldade.");
+    printf("\n\nO programa utiliza o algoritmo de busca A-Estrela para encontrar solucao \npara 6 fases do jogo, com diferentes niveis de dificuldade.");
     printf("\nCada fase possui um mapa com diferentes dimensoes e quantidade de caixas.");
     printf("\nO algoritmo analisa os movimentos possiveis para o personagem e situacoes \nque nao levam a nenhuma solucao, com isso, ira gerar \nnovas possibilidades de movimentos utilizando uma funcao heuristica \npara chegar a solucao.");
-    printf("\nApos a resolucao de todas as fases do nivel escolhido o programa apresenta \numa tabela comparativa, analisando o desempenho do algoritmo durante \nsua execucao em -- cenarios diferentes.");
+    printf("\nApos a resolucao de todas as fases do nivel escolhido o programa apresenta \numa tabela comparativa, analisando o desempenho do algoritmo durante \nsua execucao em 6 cenarios diferentes.");
     printf("\n\nVamos comecar?\n");
     system("pause");
 
@@ -32,10 +32,10 @@ int main(){
             printf("\n               RESOLUCAO AUTONOMA - SOKOBAN (RACHA-CUCA)               ");
             printf("\n-----------------------------------------------------------------------");
             printf("\n\nEscolha o nivel que deseja executar ");
-            printf("\n 1 - Facil");
-            printf("\n 2 - Medio");
-            printf("\n 3 - Dificil");
-            printf("\n 0 - Encerrar");
+            printf("\n1 - Facil");
+            printf("\n2 - Medio");
+            printf("\n3 - Dificil");
+            printf("\n0 - Encerrar");
             printf("\nQual opcao deseja selecionar?: ");
 
             while(scanf("%d", &nivel) != 1){
