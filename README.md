@@ -26,3 +26,21 @@ FUNCIONALIDADES
 - Menu para escolher o nível de dificuldade
 - Animação da solução passo a passo no console
 - Tabela de resultados ao fim de cada nível
+
+
+TECNOLOGIAS
+
+- Linguagem C
+- Windows API
+- Code:Blocks como IDE
+
+
+RESULTADOS
+
+Fase	Dificuldade	Caixas	Tempo (ms)	Nós expandidos	Custo
+01	Fácil	2	0.0147	4	4
+02	Fácil	2	0.0215	7	5
+01	Médio	2	0.1236	51	13
+02	Médio	2	0.1889	77	19
+01	Difícil	3	26.2218	1544	41
+02	Difícil	3	191.0760	3988	41
