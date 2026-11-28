@@ -37,10 +37,21 @@ TECNOLOGIAS
 
 RESULTADOS
 
-Fase	Dificuldade	Caixas	Tempo (ms)	Nós expandidos	Custo
-01	Fácil	2	0.0147	4	4
-02	Fácil	2	0.0215	7	5
-01	Médio	2	0.1236	51	13
-02	Médio	2	0.1889	77	19
-01	Difícil	3	26.2218	1544	41
-02	Difícil	3	191.0760	3988	41
+| Fase | Dificuldade | Caixas | Tempo (ms) | Nós expandidos | Profundidade | Custo |
+|:---:|:---:|:---:|---:|---:|:---:|:---:|
+| 01 | Fácil   | 2 | 0.0147   | 4    | 4  | 4  |
+| 02 | Fácil   | 2 | 0.0215   | 7    | 5  | 5  |
+| 01 | Médio   | 2 | 0.1236   | 51   | 13 | 13 |
+| 02 | Médio   | 2 | 0.1889   | 77   | 19 | 19 |
+| 01 | Difícil | 3 | 26.2218  | 1544 | 41 | 41 |
+| 02 | Difícil | 3 | 191.0760 | 3988 | 41 | 41 |
+
+
+AUTORES
+
+- Diego Pavan
+- Giovanna Freitas Bovo
+- João Pedro de Andrade Baldiceira
+- Letícia Dias Queiroz
+
+Orientadores: Prof. Fernando Soares de Aguiar Neto e Profª. Lúcia Filomena de Almeida Guimarães
