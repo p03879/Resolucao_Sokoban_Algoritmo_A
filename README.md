@@ -1,41 +1,36 @@
 # Resolucao_Sokoban_Algoritmo_A
 
-DESCRIÇÃO
+## **DESCRIÇÃO**
 
-Sistema desenvolvido em linguagem C  que resolve fases do jogo Sokoban de maneira autônoma, usando o algoritmo de busca A*. O jogador precisa empurrar todas as caixas até os objetivos. Ele só pode empurrar e não consegue mover duas caixas de uma vez. Se uma caixa ficar presa em um canto (deadlock), a fase deixa de ter solução.
+Sistema desenvolvido em linguagem C que resolve fases do jogo Sokoban de maneira autônoma, usando o algoritmo de busca A\*. O jogador precisa empurrar todas as caixas até os objetivos. Ele só pode empurrar e não consegue mover duas caixas de uma vez. Se uma caixa ficar presa em um canto (deadlock), a fase deixa de ter solução.
 
+## **OBJETIVOS**
 
-OBJETIVOS 
-
-- Resolver automaticamente 6 fases divididas em três níveis de dificuldade 
-- Aplicar o A* utilizando uma fila de prioridades ordenada por f(n) = g(n) + h(n)
+- Resolver automaticamente 6 fases divididas em três níveis de dificuldade
+- Aplicar o A\* utilizando uma fila de prioridades ordenada por `f(n) = g(n) + h(n)`
 - Detectar e descartar estados em deadlock
 - Medir o desempenho: tempo (ms), nós expandidos, profundidade e custo da solução
 
+## **COMO FUNCIONA**
 
-COMO FUNCIONA
+- **Estado:** posição do jogador + posições das caixas. Paredes e objetivos ficam fixos no mapa.
+- **Custo:** cada movimento custa 1, então o custo da solução é igual à profundidade.
+- **Heurística:** uma busca em largura (BFS) a partir de cada objetivo calcula o mínimo de empurrões até ele. `h(n)` é a menor soma dessas distâncias entre as caixas e os objetivos. Ela é admissível e consistente, então a solução encontrada é ótima.
+- **Deadlocks:** casas que a BFS não alcança são consideradas mortas, e qualquer estado com uma caixa nelas é descartado.
 
-- Estado: posição do jogador + posições das caixas. Paredes e objetivos ficam fixos no mapa.
-- Custo: cada movimento custa 1, então o custo da solução é igual à profundidade.
-- Heurística: uma busca em largura (BFS) a partir de cada objetivo calcula o mínimo de empurrões até ele. h(n) é a menor soma dessas distâncias entre as caixas e os objetivos. Ela é admissível e consistente, então a solução encontrada é ótima.
-- Deadlocks: casas que a BFS não alcança 
-
-
-FUNCIONALIDADES
+## **FUNCIONALIDADES**
 
 - Menu para escolher o nível de dificuldade
 - Animação da solução passo a passo no console
 - Tabela de resultados ao fim de cada nível
 
-
-TECNOLOGIAS
+## **TECNOLOGIAS**
 
 - Linguagem C
 - Windows API
-- Code:Blocks como IDE
+- Code::Blocks como IDE
 
-
-RESULTADOS
+## **RESULTADOS**
 
 | Fase | Dificuldade | Caixas | Tempo (ms) | Nós expandidos | Profundidade | Custo |
 |:---:|:---:|:---:|---:|---:|:---:|:---:|
@@ -46,12 +41,11 @@ RESULTADOS
 | 01 | Difícil | 3 | 26.2218  | 1544 | 41 | 41 |
 | 02 | Difícil | 3 | 191.0760 | 3988 | 41 | 41 |
 
-
-AUTORES
+## **AUTORES**
 
 - Diego Pavan
 - Giovanna Freitas Bovo
 - João Pedro de Andrade Baldiceira
 - Letícia Dias Queiroz
 
-Orientadores: Prof. Fernando Soares de Aguiar Neto e Profª. Lúcia Filomena de Almeida Guimarães
+**Orientadores:** Prof. Fernando Soares de Aguiar Neto e Profª. Lúcia Filomena de Almeida Guimarães
